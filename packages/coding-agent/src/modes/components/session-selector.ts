@@ -21,6 +21,8 @@ class SessionList implements Component {
 	#filteredSessions: SessionInfo[] = [];
 	#selectedIndex: number = 0;
 	readonly #searchInput: Input;
+	#pendingDeleteIndex: number | null = null;
+	onDelete: ((session: SessionInfo) => void) | undefined = undefined;
 	onSelect?: (sessionPath: string) => void;
 	onCancel?: () => void;
 	onExit: () => void = () => {};
@@ -147,6 +149,9 @@ class SessionList implements Component {
 			const metadataLine = theme.fg("dim", truncateToWidth(metadata, width));
 
 			lines.push(metadataLine);
+			if (i === this.#pendingDeleteIndex) {
+				lines.push(theme.fg("warning", truncateToWidth("  [Ctrl+D to confirm delete]", width)));
+			}
 			lines.push(""); // Blank line between sessions
 		}
 
@@ -159,8 +164,24 @@ class SessionList implements Component {
 
 		return lines;
 	}
-
 	handleInput(keyData: string): void {
+		// Ctrl+D - delete with two-press confirmation
+		if (matchesKey(keyData, "ctrl+d")) {
+			if (this.#pendingDeleteIndex === this.#selectedIndex) {
+				const session = this.#filteredSessions[this.#selectedIndex];
+				if (session) {
+					this.#pendingDeleteIndex = null;
+					this.onDelete?.(session);
+				}
+			} else {
+				this.#pendingDeleteIndex = this.#selectedIndex;
+			}
+			return;
+		}
+		// Any other key: cancel pending delete
+		if (this.#pendingDeleteIndex !== null) {
+			this.#pendingDeleteIndex = null;
+		}
 		// Up arrow
 		if (matchesKey(keyData, "up")) {
 			this.#selectedIndex = Math.max(0, this.#selectedIndex - 1);
@@ -190,7 +211,7 @@ class SessionList implements Component {
 				this.onCancel();
 			}
 		}
-		// Ctrl+C - exit
+		// Ctrl+D is handled above; Ctrl+C - exit
 		else if (matchesKey(keyData, "ctrl+c")) {
 			this.onExit();
 		}
@@ -213,6 +234,7 @@ export class SessionSelectorComponent extends Container {
 		onSelect: (sessionPath: string) => void,
 		onCancel: () => void,
 		onExit: () => void,
+		onDelete?: (session: SessionInfo) => void,
 	) {
 		super();
 
@@ -228,12 +250,17 @@ export class SessionSelectorComponent extends Container {
 		this.#sessionList.onSelect = onSelect;
 		this.#sessionList.onCancel = onCancel;
 		this.#sessionList.onExit = onExit;
+		this.#sessionList.onDelete = onDelete;
 
 		this.addChild(this.#sessionList);
 
 		// Add bottom border
 		this.addChild(new Spacer(1));
 		this.addChild(new DynamicBorder());
+		if (onDelete) {
+			this.addChild(new Spacer(1));
+			this.addChild(new Text(theme.fg("muted", "Ctrl+D  delete session"), 1, 0));
+		}
 	}
 
 	getSessionList(): SessionList {

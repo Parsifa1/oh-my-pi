@@ -620,14 +620,9 @@ export async function runRootCommand(parsed: Args, rawArgs: string[]): Promise<v
 
 	// Handle --resume (no value): show session picker
 	if (parsedArgs.resume === true) {
-		const sessions = await logger.timeAsync("SessionManager.list", () =>
-			SessionManager.list(cwd, parsedArgs.sessionDir),
+		const selectedPath = await logger.timeAsync("selectSession", () =>
+			selectSession(() => SessionManager.list(cwd, parsedArgs.sessionDir)),
 		);
-		if (sessions.length === 0) {
-			process.stdout.write(`${chalk.dim("No sessions found")}\n`);
-			return;
-		}
-		const selectedPath = await logger.timeAsync("selectSession", () => selectSession(sessions));
 		if (!selectedPath) {
 			process.stdout.write(`${chalk.dim("No session selected")}\n`);
 			return;

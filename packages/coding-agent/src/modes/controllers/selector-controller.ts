@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { getOAuthProviders, type OAuthProvider } from "@oh-my-pi/pi-ai";
 import type { Component } from "@oh-my-pi/pi-tui";
@@ -17,7 +18,7 @@ import {
 	theme,
 } from "../../modes/theme/theme";
 import type { InteractiveModeContext } from "../../modes/types";
-import { SessionManager } from "../../session/session-manager";
+import { type SessionInfo, SessionManager } from "../../session/session-manager";
 import {
 	isCodeSearchProviderId,
 	isSearchProviderPreference,
@@ -603,6 +604,12 @@ export class SelectorController {
 				},
 				() => {
 					void this.ctx.shutdown();
+				},
+				async (session: SessionInfo) => {
+					await fs.unlink(session.path);
+					await fs.rm(session.path.replace(/\.jsonl$/, ""), { recursive: true, force: true });
+					done();
+					await this.showSessionSelector();
 				},
 			);
 			return { component: selector, focus: selector.getSessionList() };
