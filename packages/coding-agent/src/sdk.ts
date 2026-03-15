@@ -1012,6 +1012,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			configuredPaths,
 			cwd,
 			eventBus,
+			(settings.get("disabledExtensions") as string[]) ?? [],
 		);
 		for (const { path, error } of extensionsResult.errors) {
 			logger.error("Failed to load extension", { path, error });
