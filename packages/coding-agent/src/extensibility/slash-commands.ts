@@ -1,4 +1,5 @@
 import type { AutocompleteItem } from "@oh-my-pi/pi-tui";
+import { settings } from "..";
 import { slashCommandCapability } from "../capability/slash-command";
 import { renderPromptTemplate } from "../config/prompt-templates";
 import type { SlashCommand } from "../discovery";
@@ -181,7 +182,15 @@ export async function loadSlashCommands(options: LoadSlashCommandsOptions = {}):
 		};
 	});
 
-	const seenNames = new Set(fileCommands.map(cmd => cmd.name));
+	const extensionDisabled = new Set(
+		settings
+			.get("disabledExtensions")
+			.filter(ext => ext.startsWith("slash-command"))
+			.map(ext => ext.replace("slash-command:", "")) || [],
+	);
+	const filterdCommands = fileCommands.filter(cmd => !extensionDisabled.has(cmd.name));
+
+	const seenNames = new Set(filterdCommands.map(cmd => cmd.name));
 	for (const cmd of EMBEDDED_SLASH_COMMANDS) {
 		const name = cmd.name.replace(/\.md$/, "");
 		if (seenNames.has(name)) continue;
@@ -199,7 +208,7 @@ export async function loadSlashCommands(options: LoadSlashCommandsOptions = {}):
 		seenNames.add(name);
 	}
 
-	return fileCommands;
+	return filterdCommands;
 }
 
 /**
