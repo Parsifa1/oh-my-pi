@@ -191,10 +191,9 @@ export async function readDisabledServers(filePath: string): Promise<string[]> {
 	const config = await readMCPConfigFile(filePath);
 	const extensionMcpConfig = settings
 		.get("disabledExtensions")
-		.filter(ext => ext.startsWith("mcp"))
+		.filter(ext => ext.startsWith("mcp:"))
 		.map(ext => ext.replace("mcp:", ""));
-	const combinedDisabled = [...(config.disabledServers ?? []), ...extensionMcpConfig];
-	return Array.isArray(combinedDisabled) ? combinedDisabled : [];
+	return [...(Array.isArray(config.disabledServers) ? config.disabledServers : []), ...extensionMcpConfig];
 }
 
 /**
