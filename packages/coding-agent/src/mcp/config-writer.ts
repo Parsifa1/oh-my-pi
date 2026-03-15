@@ -6,8 +6,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { isEnoent } from "@oh-my-pi/pi-utils";
+import { settings } from "..";
 import { invalidate as invalidateFsCache } from "../capability/fs";
-
 import { validateServerConfig } from "./config";
 import type { MCPConfigFile, MCPServerConfig } from "./types";
 
@@ -189,7 +189,12 @@ export async function listMCPServers(filePath: string): Promise<string[]> {
  */
 export async function readDisabledServers(filePath: string): Promise<string[]> {
 	const config = await readMCPConfigFile(filePath);
-	return Array.isArray(config.disabledServers) ? config.disabledServers : [];
+	const extensionMcpConfig = settings
+		.get("disabledExtensions")
+		.filter(ext => ext.startsWith("mcp"))
+		.map(ext => ext.replace("mcp:", ""));
+	const combinedDisabled = [...(config.disabledServers ?? []), ...extensionMcpConfig];
+	return Array.isArray(combinedDisabled) ? combinedDisabled : [];
 }
 
 /**
