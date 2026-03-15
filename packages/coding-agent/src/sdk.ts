@@ -627,6 +627,11 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		modelRegistry.refreshInBackground();
 	}
 	const skillsSettings = settings.getGroup("skills") as SkillsSettings;
+	const systemFilterSkills = settings
+		.get("disabledExtensions")
+		.filter(ext => ext.startsWith("skill:"))
+		.map(ext => ext.replace("skill:", ""));
+	skillsSettings.ignoredSkills = [...(skillsSettings.ignoredSkills ?? []), ...(systemFilterSkills ?? [])];
 	const discoveredSkillsPromise =
 		options.skills === undefined ? discoverSkills(cwd, agentDir, skillsSettings) : undefined;
 
