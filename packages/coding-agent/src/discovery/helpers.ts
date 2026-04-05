@@ -4,7 +4,7 @@ import * as path from "node:path";
 import type { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { FileType, glob } from "@oh-my-pi/pi-natives";
 import { CONFIG_DIR_NAME, getConfigDirName, getProjectDir, parseFrontmatter, tryParseJson } from "@oh-my-pi/pi-utils";
-import { readDirEntries, readFile } from "../capability/fs";
+import { invalidate as invalidateFsCache, readDirEntries, readFile } from "../capability/fs";
 import { parseRuleConditionAndScope, type Rule, type RuleFrontmatter } from "../capability/rule";
 import type { Skill, SkillFrontmatter } from "../capability/skill";
 import type { LoadContext, LoadResult, SourceMeta } from "../capability/types";
@@ -710,6 +710,42 @@ export async function resolveOrDefaultProjectRegistryPath(cwd: string): Promise<
 	return path.join(cwd, getConfigDirName(), "plugins", "installed_plugins.json");
 }
 
+export function getActiveUserOmpPluginsRegistryPath(home: string): string {
+	const xdgDataHome = process.env.XDG_DATA_HOME;
+	// Use os.homedir() for the home-match guard rather than process.env.HOME:
+	// HOME may be unset in non-login/service contexts, which would cause XDG
+	// selection to silently fall back even when the XDG registry is the active one.
+	if (
+		xdgDataHome &&
+		(process.platform === "linux" || process.platform === "darwin") &&
+		path.resolve(os.homedir()) === path.resolve(home)
+	) {
+		const xdgRegistryPath = path.join(xdgDataHome, "omp", "plugins", "installed_plugins.json");
+		if (fs.existsSync(xdgRegistryPath)) {
+			return xdgRegistryPath;
+		}
+	}
+	return path.join(home, getConfigDirName(), "plugins", "installed_plugins.json");
+}
+
+export function clearClaudePluginDiscoveryCaches(home: string, extraPaths?: readonly string[]): void {
+	invalidateFsCache(path.join(home, ".claude", "plugins", "installed_plugins.json"));
+	// Invalidate both OMP candidate paths unconditionally.
+	// getActiveUserOmpPluginsRegistryPath routes to whichever file currently exists on disk,
+	// but cache invalidation must clear all possible keys regardless of current on-disk state.
+	// (e.g. after uninstall the XDG file is gone, so the router returns the fallback path,
+	// but the XDG path still has a stale cache entry that must be evicted.)
+	invalidateFsCache(path.join(home, getConfigDirName(), "plugins", "installed_plugins.json"));
+	const xdgDataHome = process.env.XDG_DATA_HOME;
+	if (xdgDataHome) {
+		invalidateFsCache(path.join(xdgDataHome, "omp", "plugins", "installed_plugins.json"));
+	}
+	for (const filePath of extraPaths ?? []) {
+		invalidateFsCache(filePath);
+	}
+	clearClaudePluginRootsCache();
+}
+
 const pluginRootsCache = new Map<string, { roots: ClaudePluginRoot[]; warnings: string[] }>();
 
 /**
@@ -779,7 +815,7 @@ export async function listClaudePluginRoots(
 	// ── OMP installed plugins registry ───────────────────────────────────────
 	// OMP registry is authoritative: its entries replace Claude's entries for the same plugin ID.
 	// Path derived from `home` (not os.homedir()) so test isolation works when home is overridden.
-	const ompRegistryPath = path.join(home, getConfigDirName(), "plugins", "installed_plugins.json");
+	const ompRegistryPath = getActiveUserOmpPluginsRegistryPath(home);
 	const ompContent = await readFile(ompRegistryPath);
 	if (ompContent) {
 		const ompRegistry = parseClaudePluginsRegistry(ompContent);

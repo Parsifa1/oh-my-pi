@@ -1,16 +1,14 @@
 import * as os from "node:os";
-import * as path from "node:path";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { getOAuthProviders, type OAuthProvider } from "@oh-my-pi/pi-ai";
 import type { Component } from "@oh-my-pi/pi-tui";
 import { Input, Loader, Spacer, Text } from "@oh-my-pi/pi-tui";
-import { getAgentDbPath, getConfigDirName, getProjectDir } from "@oh-my-pi/pi-utils";
-import { invalidate as invalidateFsCache } from "../../capability/fs";
+import { getAgentDbPath, getProjectDir } from "@oh-my-pi/pi-utils";
 import { getRoleInfo } from "../../config/model-registry";
 import { settings } from "../../config/settings";
 import { DebugSelectorComponent } from "../../debug";
 import { disableProvider, enableProvider } from "../../discovery";
-import { clearClaudePluginRootsCache, resolveActiveProjectRegistryPath } from "../../discovery/helpers";
+import { clearClaudePluginDiscoveryCaches, resolveActiveProjectRegistryPath } from "../../discovery/helpers";
 import {
 	getInstalledPluginsRegistryPath,
 	getMarketplacesCacheDir,
@@ -436,11 +434,7 @@ export class SelectorController {
 			marketplacesCacheDir: getMarketplacesCacheDir(),
 			pluginsCacheDir: getPluginsCacheDir(),
 			clearPluginRootsCache: (extraPaths?: readonly string[]) => {
-				const home = os.homedir();
-				invalidateFsCache(path.join(home, ".claude", "plugins", "installed_plugins.json"));
-				invalidateFsCache(path.join(home, getConfigDirName(), "plugins", "installed_plugins.json"));
-				for (const p of extraPaths ?? []) invalidateFsCache(p);
-				clearClaudePluginRootsCache();
+				clearClaudePluginDiscoveryCaches(os.homedir(), extraPaths);
 			},
 		});
 

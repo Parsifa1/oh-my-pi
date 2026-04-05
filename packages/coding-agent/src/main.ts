@@ -11,9 +11,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
 import type { ImageContent } from "@oh-my-pi/pi-ai";
-import { $env, getConfigDirName, getProjectDir, logger, postmortem, setProjectDir, VERSION } from "@oh-my-pi/pi-utils";
+import { $env, getProjectDir, logger, postmortem, setProjectDir, VERSION } from "@oh-my-pi/pi-utils";
 import chalk from "chalk";
-import { invalidate as invalidateFsCache } from "./capability/fs";
 import type { Args } from "./cli/args";
 import { processFileArguments } from "./cli/file-processor";
 import { buildInitialMessage } from "./cli/initial-message";
@@ -25,7 +24,7 @@ import { resolveCliModel, resolveModelRoleValue, resolveModelScope, type ScopedM
 import { getDefault, type SettingPath, Settings, settings } from "./config/settings";
 import { initializeWithSettings } from "./discovery";
 import {
-	clearClaudePluginRootsCache,
+	clearClaudePluginDiscoveryCaches,
 	injectPluginDirRoots,
 	preloadPluginRoots,
 	resolveActiveProjectRegistryPath,
@@ -720,11 +719,7 @@ export async function runRootCommand(parsed: Args, rawArgs: string[]): Promise<v
 					marketplacesCacheDir: getMarketplacesCacheDir(),
 					pluginsCacheDir: getPluginsCacheDir(),
 					clearPluginRootsCache: (extraPaths?: readonly string[]) => {
-						const h = os.homedir();
-						invalidateFsCache(path.join(h, ".claude", "plugins", "installed_plugins.json"));
-						invalidateFsCache(path.join(h, getConfigDirName(), "plugins", "installed_plugins.json"));
-						for (const p of extraPaths ?? []) invalidateFsCache(p);
-						clearClaudePluginRootsCache();
+						clearClaudePluginDiscoveryCaches(os.homedir(), extraPaths);
 					},
 				});
 				await mgr.refreshStaleMarketplaces();

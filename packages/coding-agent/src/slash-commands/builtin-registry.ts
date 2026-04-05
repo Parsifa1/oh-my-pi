@@ -1,13 +1,10 @@
 import * as os from "node:os";
-import * as path from "node:path";
 
 import { getOAuthProviders } from "@oh-my-pi/pi-ai";
-import { getConfigDirName } from "@oh-my-pi/pi-utils";
-import { invalidate as invalidateFsCache } from "../capability/fs";
 import type { SettingPath, SettingValue } from "../config/settings";
 import { settings } from "../config/settings";
 import {
-	clearClaudePluginRootsCache,
+	clearClaudePluginDiscoveryCaches,
 	resolveActiveProjectRegistryPath,
 	resolveOrDefaultProjectRegistryPath,
 } from "../discovery/helpers.js";
@@ -627,11 +624,7 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<BuiltinSlashCommandSpec> = [
 				marketplacesCacheDir: getMarketplacesCacheDir(),
 				pluginsCacheDir: getPluginsCacheDir(),
 				clearPluginRootsCache: (extraPaths?: readonly string[]) => {
-					const home = os.homedir();
-					invalidateFsCache(path.join(home, ".claude", "plugins", "installed_plugins.json"));
-					invalidateFsCache(path.join(home, getConfigDirName(), "plugins", "installed_plugins.json"));
-					for (const p of extraPaths ?? []) invalidateFsCache(p);
-					clearClaudePluginRootsCache();
+					clearClaudePluginDiscoveryCaches(os.homedir(), extraPaths);
 				},
 			});
 
@@ -821,11 +814,7 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<BuiltinSlashCommandSpec> = [
 					marketplacesCacheDir: getMarketplacesCacheDir(),
 					pluginsCacheDir: getPluginsCacheDir(),
 					clearPluginRootsCache: (extraPaths?: readonly string[]) => {
-						const home = os.homedir();
-						invalidateFsCache(path.join(home, ".claude", "plugins", "installed_plugins.json"));
-						invalidateFsCache(path.join(home, getConfigDirName(), "plugins", "installed_plugins.json"));
-						for (const p of extraPaths ?? []) invalidateFsCache(p);
-						clearClaudePluginRootsCache();
+						clearClaudePluginDiscoveryCaches(os.homedir(), extraPaths);
 					},
 				});
 
@@ -890,11 +879,8 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<BuiltinSlashCommandSpec> = [
 			// Invalidate the fs content cache for all registry files so
 			// listClaudePluginRoots re-reads from disk on next access.
 			const home = os.homedir();
-			invalidateFsCache(path.join(home, ".claude", "plugins", "installed_plugins.json"));
-			invalidateFsCache(path.join(home, getConfigDirName(), "plugins", "installed_plugins.json"));
 			const projectPath = await resolveActiveProjectRegistryPath(runtime.ctx.sessionManager.getCwd());
-			if (projectPath) invalidateFsCache(projectPath);
-			clearClaudePluginRootsCache();
+			clearClaudePluginDiscoveryCaches(home, projectPath ? [projectPath] : undefined);
 			await runtime.ctx.refreshSlashCommandState();
 			runtime.ctx.showStatus("Plugins reloaded.");
 			runtime.ctx.editor.setText("");
