@@ -155,6 +155,12 @@ crate.from_cargo(
 # crate picks up CC/CFLAGS from the Bazel cc toolchain on its own.
 crate.annotation(
     crate = "audiopus_sys",
+    # cmake's GNUInstallDirs defaults to lib64 on 64-bit unix, but the crate's
+    # build.rs hardcodes {out_dir}/lib as the only link-search path. Emit lib64
+    # as a second search path so rustc finds libopus.a regardless of which
+    # libdir cmake chose.
+    patches = ["//bazel/patches:audiopus_sys-lib64-link-search.patch"],
+    patch_args = ["-p1"],
     build_script_env = {
         "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
         # msvc cross only (cmake-rs reads VAR_<triple> before VAR; the key is
@@ -174,7 +180,7 @@ crate.annotation(
         # the UBSan runtime. Opus shipped without sanitizers under
         # cargo-zigbuild too.
         "CFLAGS": "-fno-sanitize=undefined",
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/run/current-system/sw/bin",
     },
 )
 
