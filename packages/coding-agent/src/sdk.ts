@@ -32,7 +32,7 @@ import { withCredentialRedaction } from "@oh-my-pi/pi-ai/providers/transform-mes
 import { FALLBACK_DIALECT, preferredDialect } from "@oh-my-pi/pi-catalog/identity";
 import type { Component } from "@oh-my-pi/pi-tui";
 import { $env } from "@oh-my-pi/pi-utils/env";
-import { getAgentDir, getModelDbPath, getProjectDir } from "@oh-my-pi/pi-utils/dirs";
+import { getAgentDir, getModelDbPath, getProjectDir, getSkillDescriptionsDbPath } from "@oh-my-pi/pi-utils/dirs";
 import * as logger from "@oh-my-pi/pi-utils/logger";
 import * as postmortem from "@oh-my-pi/pi-utils/postmortem";
 import * as prompt from "@oh-my-pi/pi-utils/prompt";
@@ -3655,7 +3655,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
 		// `setAdvisorMemoryPrompt`.
 		let advisorMemoryPrompt: string | undefined;
 		const skillDescriptions = new SkillDescriptionCatalog({
-			dbPath: path.join(agentDir, "skill-descriptions.db"),
+			dbPath: getSkillDescriptionsDbPath(agentDir),
 			compress: createSkillDescriptionCompressor(modelRegistry, settings),
 		});
 		const rebuildSystemPrompt = async (

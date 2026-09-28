@@ -915,6 +915,10 @@ export function getDocumentConversionCacheDir(agentDir?: string): string {
 export function getComposerCacheDbPath(agentDir?: string): string {
 	return dirs.agentSubdir(agentDir, path.join("cache", "composer.db"), "cache");
 }
+/** Get the skill descriptions database (~/.omp/agent/skill-descriptions.db; XDG default: $XDG_DATA_HOME/omp/skill-descriptions.db). */
+export function getSkillDescriptionsDbPath(agentDir?: string): string {
+	return dirs.agentSubdir(agentDir, "skill-descriptions.db", "data");
+}
 
 /** Get the sessions directory (~/.omp/agent/sessions). */
 export function getSessionsDir(agentDir?: string): string {
