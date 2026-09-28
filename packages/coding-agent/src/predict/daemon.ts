@@ -15,7 +15,15 @@ import * as net from "node:net";
 import * as path from "node:path";
 import type { Database } from "bun:sqlite";
 import { type PredictedWord, TextPredictor } from "@oh-my-pi/pi-natives";
-import { getHistoryDbPath, isEnoent, logger, postmortem, VERSION, withFileLock } from "@oh-my-pi/pi-utils";
+import {
+	getHistoryDbPath,
+	getPredictStateDir,
+	isEnoent,
+	logger,
+	postmortem,
+	VERSION,
+	withFileLock,
+} from "@oh-my-pi/pi-utils";
 import { LineParser, writeJsonLine } from "../tiny/jsonl-socket";
 import { endpointAlive } from "../tiny/worker-server";
 import { openSqliteReadConnection } from "../tools/sqlite-reader";
@@ -336,7 +344,7 @@ class TextPredictDaemon {
 	}
 
 	async #open(method: TextPredictMethod): Promise<Engine> {
-		const stateDir = path.join(this.#agentDir, "predict", method);
+		const stateDir = getPredictStateDir(this.#agentDir, method);
 		await fs.mkdir(stateDir, { recursive: true });
 		let modelDir: string | undefined;
 		if (method === "smollm") {
